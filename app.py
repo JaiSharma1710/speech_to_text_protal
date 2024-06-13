@@ -1,42 +1,25 @@
-# Install dependencies
-
-# Linux
-# sudo apt update && sudo apt install ffmpeg
-
-# MacOS
-# brew install ffmpeg
-
-# Windows
-# chco install ffmpeg
-
-# Installing pytorch
-# conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-
-# Installing Whisper
-# pip install git+https://github.com/openai/whisper.git -q
-
-# pip install streamlit
 import streamlit as st
-import whisper
+from transformers import pipeline
+import requests
 
-st.title("Whisper App")
+# Streamlit app
+st.title("Speech to Text")
 
-# upload audio file with streamlit
-audio_file = st.file_uploader("Upload Audio", type=["wav", "mp3", "m4a"])
+audio_url = st.text_input("Link To Audio file")
 
-model = whisper.load_model("base")
-st.text("Whisper Model Loaded")
+if st.button("Transcript"):
+    if not audio_url:
+        st.error('no URL present')
 
+    response = requests.get(audio_url)
 
-if st.sidebar.button("Transcribe Audio"):
-    if audio_file is not None:
-        st.sidebar.success("Transcribing Audio")
-        transcription = model.transcribe(audio_file.name)
-        st.sidebar.success("Transcription Complete")
+    if response.status_code == 200:
+        audio_data = response.content
+        st.audio(audio_data)
+        whisper = pipeline('automatic-speech-recognition',
+                           model='openai/whisper-medium')
+        transcription = whisper(audio_data)
         st.markdown(transcription["text"])
     else:
-        st.sidebar.error("Please upload an audio file")
-
-
-st.sidebar.header("Play Original Audio File")
-st.sidebar.audio(audio_file)
+        st.error(
+            f"Failed to download audio file. Status code: {response.status_code}")
